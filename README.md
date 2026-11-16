@@ -16,8 +16,95 @@ Q(next) = T ⊕ Q   (Q(next) = Q if T = 0, Q(next) = Q' if T = 1)
 
 ## Design / RTL Program
 
-```
+// gedit dff_tff.v
+ 
+module dff (
+    input  wire clk,   // clock
+    input  wire rst,   // asynchronous active-high reset
+    input  wire D,     // data input
+    output reg  Q      // output
+);
+    always @(posedge clk or posedge rst) begin
+        if (rst)
+            Q <= 1'b0;
+        else
+            Q <= D;
+    end
+endmodule
+ 
+module tff (
+    input  wire clk,   // clock
+    input  wire rst,   // asynchronous active-high reset
+    input  wire T,     // toggle input
+    output reg  Q      // output
+);
+    always @(posedge clk or posedge rst) begin
+        if (rst)
+            Q <= 1'b0;
+        else if (T)
+            Q <= ~Q;
+        else
+            Q <= Q;
+    end
+endmodule
+
+
 ## Testbench Program
+
+// gedit tb5.v
+ 
+module tb5;
+    reg  clk, rst, D, T;
+    wire Qd, Qt;
+ 
+    // Instantiate the D Flip-Flop
+    dff dff_uut (
+        .clk(clk),
+        .rst(rst),
+        .D(D),
+        .Q(Qd)
+    );
+ 
+    // Instantiate the T Flip-Flop
+    tff tff_uut (
+        .clk(clk),
+        .rst(rst),
+        .T(T),
+        .Q(Qt)
+    );
+ 
+    // ---- Clock generation: 10 time-unit period ----
+    initial clk = 0;
+    always #5 clk = ~clk;
+ 
+    initial begin
+        // ---- VCD dump setup ----
+        $dumpfile("dff_tff.vcd");   // name of the VCD file to be generated
+        $dumpvars(0, tb5);            // dump all signals in this testbench hierarchy
+ 
+        $monitor("Time=%0t rst=%b clk=%b | D=%b Qd=%b | T=%b Qt=%b",
+                  $time, rst, clk, D, Qd, T, Qt);
+ 
+        // ---- Apply asynchronous reset ----
+        rst = 1; D = 0; T = 0;
+        #7  rst = 0;
+ 
+        // ---- Apply test vectors on successive clock edges ----
+        @(negedge clk); D = 1; T = 1;
+        @(negedge clk); D = 0; T = 1;
+        @(negedge clk); D = 1; T = 0;
+        @(negedge clk); D = 0; T = 0;
+        @(negedge clk); D = 1; T = 1;
+        @(negedge clk); D = 1; T = 1;
+ 
+        // ---- Apply reset again mid-simulation ----
+        @(negedge clk); rst = 1;
+        @(negedge clk); rst = 0; D = 1; T = 1;
+ 
+        #20 $finish;
+    end
+endmodule
+
 
 
 
@@ -80,28 +167,10 @@ The design was compiled and simulated using Synopsys VCS, and the functionality 
 
 **## Output**
 
+<img width="1600" height="847" alt="WhatsApp Image 2026-11-16 at 8 25 01 AM" src="https://github.com/user-attachments/assets/e703b738-eb72-4b24-80ae-8cdf9509bbf6" />
+<img width="1600" height="825" alt="WhatsApp Image 2026-11-16 at 8 25 12 AM" src="https://github.com/user-attachments/assets/60947ba9-f796-4ebe-92d5-5b4fcb46be33" />
 
-## Viva-Voce Questions
 
-●	What is the difference between a latch and a flip-flop?
-
-●	Why is the D flip-flop also called a 'delay' element?
-
-●	How is a T flip-flop derived from a JK flip-flop?
-
-●	What is the characteristic equation of a T flip-flop, and what does it mean when T = 1?
-
-●	What is the difference between synchronous and asynchronous reset? Which one is used here?
-
-●	Why is posedge used in the sensitivity list, and what does 'posedge clk or posedge rst' achieve?
-
-●	What is the purpose of a Verilog testbench?
-
-●	Why is a VCD file generated, and what does $dumpvars(0, tb) do?
-
-●	How would you construct a T flip-flop using a D flip-flop and an XOR gate?
-
-●	How can a chain of T flip-flops be used to build an asynchronous binary counter?
 
 ## Result
 
